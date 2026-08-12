@@ -1,0 +1,9 @@
+# Minimal config for the Supabase CLI (`supabase functions deploy ...`).
+# Run `supabase login` and `supabase link --project-ref YOUR_PROJECT_REF` first.
+project_id = "daygrid-kn"
+
+[functions.schedule-alerts]
+verify_jwt = false
+
+[functions.send-alert-email]
+verify_jwt = false
