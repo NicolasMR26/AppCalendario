@@ -175,6 +175,31 @@ function DateField({
   onToggle: () => void;
   onChange: (date: string) => void;
 }) {
+  // @react-native-community/datetimepicker has no web implementation at all
+  // (it silently renders nothing there), so date entry and — since a note
+  // requires a date to be saved — the whole "add note" flow were both dead
+  // on web. The browser's native <input type="date"> already gives a real
+  // date picker UI and speaks the same "YYYY-MM-DD" format we use.
+  if (Platform.OS === "web") {
+    return React.createElement("input", {
+      type: "date",
+      value: value ?? "",
+      onChange: (event: { target: { value: string } }) => {
+        if (event.target.value) onChange(event.target.value);
+      },
+      style: {
+        border: `1px solid ${theme.colors.border}`,
+        backgroundColor: theme.colors.surfaceAlt,
+        color: theme.colors.text,
+        borderRadius: 8,
+        padding: "6px 10px",
+        fontSize: 13,
+        fontFamily: "inherit",
+        minWidth: 110,
+      },
+    });
+  }
+
   const handleChange = (event: DateTimePickerEvent, selected?: Date) => {
     if (event.type === "dismissed") {
       if (Platform.OS === "android") onToggle();

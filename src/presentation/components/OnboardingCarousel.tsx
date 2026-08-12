@@ -54,6 +54,7 @@ export function OnboardingCarousel({ onFinish }: OnboardingCarouselProps) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
 
+  const isFirst = index === 0;
   const isLast = index === SLIDES.length - 1;
   const slide = SLIDES[index];
 
@@ -63,6 +64,11 @@ export function OnboardingCarousel({ onFinish }: OnboardingCarouselProps) {
       return;
     }
     setIndex((i) => i + 1);
+  };
+
+  const goPrevious = () => {
+    if (isFirst) return;
+    setIndex((i) => i - 1);
   };
 
   return (
@@ -92,9 +98,19 @@ export function OnboardingCarousel({ onFinish }: OnboardingCarouselProps) {
           ))}
         </View>
 
-        <Pressable onPress={goNext} style={[styles.nextButton, { backgroundColor: theme.colors.accent }]}>
-          <Text style={styles.nextButtonText}>{isLast ? "Comenzar" : "Siguiente"}</Text>
-        </Pressable>
+        <View style={styles.buttonRow}>
+          <Pressable
+            onPress={goPrevious}
+            disabled={isFirst}
+            style={[styles.previousButton, { borderColor: theme.colors.border, opacity: isFirst ? 0 : 1 }]}
+          >
+            <Text style={{ color: theme.colors.text, fontWeight: "600", fontSize: 15 }}>Anterior</Text>
+          </Pressable>
+
+          <Pressable onPress={goNext} style={[styles.nextButton, { backgroundColor: theme.colors.accent }]}>
+            <Text style={styles.nextButtonText}>{isLast ? "Comenzar" : "Siguiente"}</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -108,9 +124,11 @@ const styles = StyleSheet.create({
   emoji: { fontSize: 64, marginBottom: 24 },
   title: { fontSize: 22, fontWeight: "700", textAlign: "center", marginBottom: 12 },
   description: { fontSize: 15, textAlign: "center", lineHeight: 22 },
-  footer: { alignItems: "center", gap: 20, paddingTop: 8 },
+  footer: { alignItems: "center", gap: 20, paddingTop: 8, paddingHorizontal: 32, width: "100%" },
   dots: { flexDirection: "row", gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  nextButton: { paddingHorizontal: 32, paddingVertical: 14, borderRadius: 999, minWidth: 180, alignItems: "center" },
+  buttonRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" },
+  previousButton: { paddingHorizontal: 20, paddingVertical: 14, borderRadius: 999, borderWidth: 1 },
+  nextButton: { paddingHorizontal: 32, paddingVertical: 14, borderRadius: 999, minWidth: 160, alignItems: "center" },
   nextButtonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
 });
