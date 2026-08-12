@@ -16,6 +16,7 @@ import { useSubjectsStore } from "@presentation/store/subjectsStore";
 import { useSettingsStore } from "@presentation/store/settingsStore";
 import { useAuthStore } from "@presentation/store/authStore";
 import { useOnboardingStore } from "@presentation/store/onboardingStore";
+import { injectPwaHeadTags } from "@presentation/utils/pwaHeadTags";
 import { flushPendingSync } from "@data/repositories";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -36,6 +37,7 @@ export default function RootLayout() {
   const finishOnboarding = useOnboardingStore((s) => s.finish);
 
   useEffect(() => {
+    injectPwaHeadTags();
     initAuth();
     (async () => {
       await Promise.all([loadSubjects(), loadSettings(), loadOnboarding(), flushPendingSync()]);

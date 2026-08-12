@@ -1,14 +1,6 @@
-import React, { useRef, useState } from "react";
-import {
-  FlatList,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import React, { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@presentation/theme/ThemeProvider";
 
@@ -50,26 +42,27 @@ interface OnboardingCarouselProps {
   onFinish: () => void;
 }
 
+/**
+ * A single slide renders at a time, driven purely by `index` state — no
+ * ScrollView/FlatList. Earlier versions relied on an imperative
+ * `scrollTo`/`scrollToIndex` ref call to advance the page, which is
+ * unreliable on react-native-web (the index state updated but the visible
+ * content never scrolled). This sidesteps that entirely.
+ */
 export function OnboardingCarousel({ onFinish }: OnboardingCarouselProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   const [index, setIndex] = useState(0);
-  const listRef = useRef<FlatList<Slide>>(null);
 
   const isLast = index === SLIDES.length - 1;
-
-  const handleMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const next = Math.round(event.nativeEvent.contentOffset.x / width);
-    setIndex(next);
-  };
+  const slide = SLIDES[index];
 
   const goNext = () => {
     if (isLast) {
       onFinish();
       return;
     }
-    listRef.current?.scrollToIndex({ index: index + 1, animated: true });
+    setIndex((i) => i + 1);
   };
 
   return (
@@ -78,28 +71,19 @@ export function OnboardingCarousel({ onFinish }: OnboardingCarouselProps) {
         <Text style={{ color: theme.colors.textMuted, fontSize: 14 }}>Saltar</Text>
       </Pressable>
 
-      <FlatList
-        ref={listRef}
-        data={SLIDES}
-        keyExtractor={(item) => item.title}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleMomentumScrollEnd}
-        renderItem={({ item }) => (
-          <View style={[styles.slide, { width }]}>
-            <Text style={styles.emoji}>{item.emoji}</Text>
-            <Text style={[styles.title, { color: theme.colors.text }]}>{item.title}</Text>
-            <Text style={[styles.description, { color: theme.colors.textMuted }]}>{item.description}</Text>
-          </View>
-        )}
-      />
+      <View style={styles.slideArea}>
+        <Animated.View key={index} entering={FadeIn.duration(220)} style={styles.slide}>
+          <Text style={styles.emoji}>{slide.emoji}</Text>
+          <Text style={[styles.title, { color: theme.colors.text }]}>{slide.title}</Text>
+          <Text style={[styles.description, { color: theme.colors.textMuted }]}>{slide.description}</Text>
+        </Animated.View>
+      </View>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
         <View style={styles.dots}>
-          {SLIDES.map((slide, i) => (
+          {SLIDES.map((s, i) => (
             <View
-              key={slide.title}
+              key={s.title}
               style={[
                 styles.dot,
                 { backgroundColor: i === index ? theme.colors.accent : theme.colors.border },
@@ -119,7 +103,8 @@ export function OnboardingCarousel({ onFinish }: OnboardingCarouselProps) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   skipButton: { position: "absolute", top: 16, right: 20, zIndex: 1, padding: 8 },
-  slide: { alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
+  slideArea: { flex: 1 },
+  slide: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
   emoji: { fontSize: 64, marginBottom: 24 },
   title: { fontSize: 22, fontWeight: "700", textAlign: "center", marginBottom: 12 },
   description: { fontSize: 15, textAlign: "center", lineHeight: 22 },

@@ -26,11 +26,11 @@ module.exports = ({ config }) => ({
     package: "com.daygridkn.app",
   },
   web: {
-    // NOTE: "static" output would enable app/+html.tsx (custom <head> /
-    // PWA meta tags), but it pre-renders every route in Node during build,
-    // and our root layout creates a Supabase client at module scope that
-    // touches `window` — that crashes under static/SSR. Default (SPA) mode
-    // avoids it; revisit if the PWA install experience needs real polish.
+    // NOTE: "static" output would enable app/+html.tsx for custom <head>
+    // tags, but it left the app stuck on a blank screen (React hydration
+    // never resolves — root div stays as an empty Suspense boundary marker,
+    // no console error). Default (SPA) mode is solid; the apple-touch-icon
+    // etc. are injected client-side instead — see RootLayout's web effect.
     favicon: "./assets/favicon.png",
   },
   // GitHub Pages serves project sites from /<repo-name>/, not the domain
