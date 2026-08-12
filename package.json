@@ -11,7 +11,7 @@
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "predeploy": "expo export --platform web && cp dist/index.html dist/404.html && touch dist/.nojekyll",
+    "predeploy": "expo export --platform web --clear && cp dist/index.html dist/404.html && touch dist/.nojekyll",
     "deploy": "gh-pages -d dist --dotfiles"
   },
   "dependencies": {
