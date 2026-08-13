@@ -6,7 +6,6 @@ import {
   DAY_LABELS,
   DAY_WIDTH,
   GRID_TOTAL_HEIGHT,
-  GRID_VERTICAL_PADDING,
   HOUR_HEIGHT,
   HOUR_MARKS,
   TIME_GUTTER_WIDTH,
@@ -56,17 +55,26 @@ export function CalendarGrid({ subjects, onPressSubject, onToggleFavorite, onMov
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: "row" }}>
           <View style={{ width: TIME_GUTTER_WIDTH, height: GRID_TOTAL_HEIGHT }}>
-            {HOUR_MARKS.map((hour, index) => (
-              <Text
-                key={hour}
-                style={[
-                  styles.hourLabel,
-                  { top: GRID_VERTICAL_PADDING + index * HOUR_HEIGHT - 7, color: theme.colors.textMuted },
-                ]}
-              >
-                {hour}:00
-              </Text>
-            ))}
+            {HOUR_MARKS.map((hour, index) => {
+              const lineY = index * HOUR_HEIGHT;
+              const isLastMark = index === HOUR_MARKS.length - 1;
+              return (
+                <Text
+                  key={hour}
+                  style={[
+                    styles.hourLabel,
+                    // Every label sits just inside the row it opens, near its own line —
+                    // except the last (22:00), which has no row below it, so it's inset
+                    // upward to sit inside the bottom of the previous row instead. This
+                    // keeps the 7:00 and 22:00 rows the same full height as every other
+                    // row, with no leftover padding sliver at either end of the grid.
+                    { top: isLastMark ? lineY - 13 : lineY + 2, color: theme.colors.textMuted },
+                  ]}
+                >
+                  {hour}:00
+                </Text>
+              );
+            })}
           </View>
 
           <ScrollView
@@ -79,10 +87,7 @@ export function CalendarGrid({ subjects, onPressSubject, onToggleFavorite, onMov
               {HOUR_MARKS.map((hour, index) => (
                 <View
                   key={hour}
-                  style={[
-                    styles.hourLine,
-                    { top: GRID_VERTICAL_PADDING + index * HOUR_HEIGHT, borderColor: theme.colors.border },
-                  ]}
+                  style={[styles.hourLine, { top: index * HOUR_HEIGHT, borderColor: theme.colors.border }]}
                 />
               ))}
               {WEEK_DAYS.slice(1).map((day, i) => (
