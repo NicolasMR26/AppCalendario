@@ -31,12 +31,20 @@ export function minutesToTime(totalMinutes: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+/**
+ * Extra blank row, the same full HOUR_HEIGHT as every real hour row, added
+ * above 7:00 and below 22:00 — breathing room so the first/last hour rows
+ * don't sit flush against the screen edge. A thin sliver here (instead of a
+ * full row) is what made those two rows look cut off/incomplete before.
+ */
+export const GRID_EDGE_PADDING = HOUR_HEIGHT;
+
 export function minutesFromGridTop(offsetY: number): number {
-  return GRID_START_HOUR * 60 + (offsetY / HOUR_HEIGHT) * 60;
+  return GRID_START_HOUR * 60 + ((offsetY - GRID_EDGE_PADDING) / HOUR_HEIGHT) * 60;
 }
 
 export function yFromMinutes(minutes: number): number {
-  return ((minutes - GRID_START_HOUR * 60) / 60) * HOUR_HEIGHT;
+  return GRID_EDGE_PADDING + ((minutes - GRID_START_HOUR * 60) / 60) * HOUR_HEIGHT;
 }
 
 export function dayFromX(x: number, dayWidth: number): WeekDay {
@@ -44,11 +52,5 @@ export function dayFromX(x: number, dayWidth: number): WeekDay {
   return WEEK_DAYS[index];
 }
 
-/**
- * No top/bottom padding: the 7:00 line sits at the very top of the grid and
- * the 22:00 line at the very bottom, so those hour rows render at the same
- * full HOUR_HEIGHT as every other row instead of being sliced by a padding
- * gap. Hour labels are inset from their own line instead — see CalendarGrid.
- */
-export const GRID_TOTAL_HEIGHT = (GRID_END_HOUR - GRID_START_HOUR) * HOUR_HEIGHT;
+export const GRID_TOTAL_HEIGHT = (GRID_END_HOUR - GRID_START_HOUR) * HOUR_HEIGHT + GRID_EDGE_PADDING * 2;
 export const HOUR_MARKS = Array.from({ length: GRID_END_HOUR - GRID_START_HOUR + 1 }, (_, i) => GRID_START_HOUR + i);
