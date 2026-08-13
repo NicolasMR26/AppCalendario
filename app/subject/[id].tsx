@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import type { WeekDay } from "@domain/entities/Subject";
+import { subjectsOverlap, type WeekDay } from "@domain/entities/Subject";
 import { ColorPicker } from "@presentation/components/ColorPicker";
 import { NotesList } from "@presentation/components/NotesList";
 import { useNotesStore } from "@presentation/store/notesStore";
@@ -28,6 +28,7 @@ export default function SubjectEditorScreen() {
 
   const [name, setName] = useState(existing?.name ?? "");
   const [professor, setProfessor] = useState(existing?.professor ?? "");
+  const [room, setRoom] = useState(existing?.room ?? "");
   const [color, setColor] = useState(existing?.color ?? SUBJECT_COLOR_PALETTE[8]);
   const [day, setDay] = useState<WeekDay>(existing?.day ?? 1);
   const [startTime, setStartTime] = useState(existing?.startTime ?? "09:00");
@@ -55,14 +56,38 @@ export default function SubjectEditorScreen() {
   const timesValid = TIME_PATTERN.test(startTime) && TIME_PATTERN.test(endTime) && startTime < endTime;
   const canSave = name.trim().length > 0 && timesValid;
 
+  // Non-blocking: only informs the user, never prevents saving (see report §6.2).
+  const conflicts = useMemo(() => {
+    if (!timesValid) return [];
+    return subjects.filter((s) => s.id !== savedId && subjectsOverlap({ day, startTime, endTime }, s));
+  }, [subjects, day, startTime, endTime, timesValid, savedId]);
+
   const handleSave = async () => {
     if (!canSave) return;
     if (isNew && !savedId) {
-      const created = await addSubject({ name: name.trim(), professor: professor.trim() || undefined, color, day, startTime, endTime, isFavorite });
+      const created = await addSubject({
+        name: name.trim(),
+        professor: professor.trim() || undefined,
+        room: room.trim() || undefined,
+        color,
+        day,
+        startTime,
+        endTime,
+        isFavorite,
+      });
       setSavedId(created.id);
       router.setParams({ id: created.id });
     } else if (savedId) {
-      await updateSubject(savedId, { name: name.trim(), professor: professor.trim() || undefined, color, day, startTime, endTime, isFavorite });
+      await updateSubject(savedId, {
+        name: name.trim(),
+        professor: professor.trim() || undefined,
+        room: room.trim() || undefined,
+        color,
+        day,
+        startTime,
+        endTime,
+        isFavorite,
+      });
     }
     notify("Guardado", `"${name.trim()}" se guardó correctamente.`, () => router.back());
   };
@@ -111,6 +136,14 @@ export default function SubjectEditorScreen() {
         style={[styles.professorInput, { color: theme.colors.textMuted, borderColor: theme.colors.border }]}
       />
 
+      <TextInput
+        value={room}
+        onChangeText={setRoom}
+        placeholder="Salón (opcional)"
+        placeholderTextColor={theme.colors.textMuted}
+        style={[styles.professorInput, { color: theme.colors.textMuted, borderColor: theme.colors.border }]}
+      />
+
       <Field label="Día" theme={theme}>
         <View style={styles.dayRow}>
           {WEEK_DAYS.map((d) => (
@@ -147,6 +180,11 @@ export default function SubjectEditorScreen() {
           />
         </View>
         {!timesValid && <Text style={{ color: theme.colors.danger, fontSize: 12 }}>Formato HH:mm, hora fin debe ser mayor a inicio.</Text>}
+        {conflicts.length > 0 && (
+          <Text style={{ color: theme.colors.favorite, fontSize: 12 }}>
+            ⚠ Se solapa con: {conflicts.map((c) => c.name).join(", ")}
+          </Text>
+        )}
       </Field>
 
       <Field label="Color" theme={theme}>

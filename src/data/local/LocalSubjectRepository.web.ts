@@ -47,4 +47,13 @@ export class LocalSubjectRepository implements SubjectRepository {
     }
     await tx.done;
   }
+
+  /**
+   * Writes a subject record exactly as given (id/timestamps included), used
+   * only by the sync layer to merge in remote records verbatim.
+   */
+  async upsertRaw(subject: Subject): Promise<void> {
+    const db = await getWebDb();
+    await db.put("subjects", subject);
+  }
 }

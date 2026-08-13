@@ -14,3 +14,15 @@ export const settingsRepository = new SyncSettingsRepository();
 export async function flushPendingSync(): Promise<void> {
   await Promise.all([subjectRepository.flushPending(), noteRepository.flushPending()]);
 }
+
+/**
+ * Downloads the remote mirror into the local store on sign-in, so a second
+ * device (or a reinstall under the same account) actually sees subjects/notes
+ * synced elsewhere instead of starting from an empty local database. Subjects
+ * must be pulled before notes: a note's `subject_id` foreign key requires its
+ * parent subject to already exist locally.
+ */
+export async function pullRemoteData(): Promise<void> {
+  await subjectRepository.pullFromRemote();
+  await noteRepository.pullFromRemote();
+}

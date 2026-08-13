@@ -7,6 +7,7 @@ export interface SubjectRow {
   id: string;
   name: string;
   professor: string | null;
+  room: string | null;
   color: string;
   day: number;
   start_time: string;
@@ -33,6 +34,7 @@ export function subjectFromRow(row: SubjectRow): Subject {
     id: row.id,
     name: row.name,
     professor: row.professor ?? undefined,
+    room: row.room ?? undefined,
     color: row.color,
     day: row.day as Subject["day"],
     startTime: row.start_time,

@@ -64,6 +64,7 @@ async function openAndMigrate(): Promise<SQLite.SQLiteDatabase> {
   `);
 
   await addColumnIfMissing(db, "settings", "has_seen_onboarding", "INTEGER NOT NULL DEFAULT 0");
+  await addColumnIfMissing(db, "subjects", "room", "TEXT");
 
   return db;
 }

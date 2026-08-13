@@ -23,11 +23,12 @@ export class LocalSubjectRepository implements SubjectRepository {
     const now = new Date().toISOString();
     const subject: Subject = { ...input, id: generateId(), createdAt: now, updatedAt: now };
     await db.runAsync(
-      `INSERT INTO subjects (id, name, professor, color, day, start_time, end_time, is_favorite, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO subjects (id, name, professor, room, color, day, start_time, end_time, is_favorite, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       subject.id,
       subject.name,
       subject.professor ?? null,
+      subject.room ?? null,
       subject.color,
       subject.day,
       subject.startTime,
@@ -45,10 +46,11 @@ export class LocalSubjectRepository implements SubjectRepository {
     const updated: Subject = { ...existing, ...patch, updatedAt: new Date().toISOString() };
     const db = await getDb();
     await db.runAsync(
-      `UPDATE subjects SET name = ?, professor = ?, color = ?, day = ?, start_time = ?, end_time = ?, is_favorite = ?, updated_at = ?
+      `UPDATE subjects SET name = ?, professor = ?, room = ?, color = ?, day = ?, start_time = ?, end_time = ?, is_favorite = ?, updated_at = ?
        WHERE id = ?`,
       updated.name,
       updated.professor ?? null,
+      updated.room ?? null,
       updated.color,
       updated.day,
       updated.startTime,
@@ -63,5 +65,33 @@ export class LocalSubjectRepository implements SubjectRepository {
   async remove(id: string): Promise<void> {
     const db = await getDb();
     await db.runAsync("DELETE FROM subjects WHERE id = ?", id);
+  }
+
+  /**
+   * Writes a subject row exactly as given (id/timestamps included), inserting
+   * or overwriting whatever is there. Used only by the sync layer to merge in
+   * remote records verbatim — the UI always goes through create()/update().
+   */
+  async upsertRaw(subject: Subject): Promise<void> {
+    const db = await getDb();
+    await db.runAsync(
+      `INSERT INTO subjects (id, name, professor, room, color, day, start_time, end_time, is_favorite, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         name = excluded.name, professor = excluded.professor, room = excluded.room, color = excluded.color,
+         day = excluded.day, start_time = excluded.start_time, end_time = excluded.end_time,
+         is_favorite = excluded.is_favorite, updated_at = excluded.updated_at`,
+      subject.id,
+      subject.name,
+      subject.professor ?? null,
+      subject.room ?? null,
+      subject.color,
+      subject.day,
+      subject.startTime,
+      subject.endTime,
+      subject.isFavorite ? 1 : 0,
+      subject.createdAt,
+      subject.updatedAt
+    );
   }
 }

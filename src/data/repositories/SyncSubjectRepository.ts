@@ -66,6 +66,29 @@ export class SyncSubjectRepository implements SubjectRepository {
     }
   }
 
+  /**
+   * Pulls the remote mirror down into the local store, merging by `updatedAt`
+   * so a newer local edit (not yet pushed) is never clobbered by an older
+   * remote row. `local.list()/get()` never talk to Supabase on their own, so
+   * without this a second device (or a reinstall) never sees subjects that
+   * were only ever synced from elsewhere. Called on sign-in / app start.
+   */
+  async pullFromRemote(): Promise<void> {
+    if (!(await this.isOnline())) return;
+    try {
+      const [remoteSubjects, localSubjects] = await Promise.all([this.remote.list(), this.local.list()]);
+      const localById = new Map(localSubjects.map((s) => [s.id, s]));
+      for (const remoteSubject of remoteSubjects) {
+        const localSubject = localById.get(remoteSubject.id);
+        if (!localSubject || remoteSubject.updatedAt > localSubject.updatedAt) {
+          await this.local.upsertRaw(remoteSubject);
+        }
+      }
+    } catch {
+      // best-effort; local stays authoritative, retried on next pull
+    }
+  }
+
   /** Retries every queued subject operation; called on app start / reconnect. */
   async flushPending(): Promise<void> {
     if (!(await this.isOnline())) return;

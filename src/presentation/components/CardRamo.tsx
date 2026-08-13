@@ -126,6 +126,11 @@ export function CardRamo({ subject, onPress, onToggleFavorite, onMove }: CardRam
             {subject.startTime} – {subject.endTime}
           </Text>
         )}
+        {subject.room && cardHeight > 78 && (
+          <Text numberOfLines={1} style={styles.subtitle}>
+            📍 {subject.room}
+          </Text>
+        )}
       </Animated.View>
     </GestureDetector>
   );

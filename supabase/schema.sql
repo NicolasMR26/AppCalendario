@@ -12,6 +12,7 @@ create table if not exists subjects (
   user_id uuid not null references auth.users(id) on delete cascade,
   name text not null,
   professor text,
+  room text,
   color text not null default '#5B8DEF',
   day smallint not null check (day between 1 and 7),
   start_time time not null,
@@ -22,6 +23,10 @@ create table if not exists subjects (
 );
 
 create index if not exists subjects_user_id_idx on subjects(user_id);
+
+-- Idempotent — safe to re-run against a project created before the `room`
+-- column existed; a no-op on a fresh run of this whole script.
+alter table subjects add column if not exists room text;
 
 -- ---------------------------------------------------------------------------
 -- notes

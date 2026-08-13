@@ -46,6 +46,15 @@ export class LocalNoteRepository implements NoteRepository {
     await db.delete("notes", id);
   }
 
+  /**
+   * Writes a note record exactly as given (id/timestamps included), used only
+   * by the sync layer to merge in remote records verbatim.
+   */
+  async upsertRaw(note: Note): Promise<void> {
+    const db = await getWebDb();
+    await db.put("notes", note);
+  }
+
   async reorder(subjectId: string, orderedIds: string[]): Promise<void> {
     const db = await getWebDb();
     const tx = db.transaction("notes", "readwrite");

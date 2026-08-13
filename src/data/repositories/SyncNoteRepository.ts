@@ -77,6 +77,29 @@ export class SyncNoteRepository implements NoteRepository {
     }
   }
 
+  /**
+   * Pulls the remote mirror down into the local store, merging by `updatedAt`
+   * so a newer local edit (not yet pushed) is never clobbered by an older
+   * remote row. Must run after {@link SyncSubjectRepository.pullFromRemote}
+   * so each note's parent subject already exists locally (FK constraint).
+   * Called on sign-in / app start.
+   */
+  async pullFromRemote(): Promise<void> {
+    if (!(await this.isOnline())) return;
+    try {
+      const [remoteNotes, localNotes] = await Promise.all([this.remote.listAll(), this.local.listAll()]);
+      const localById = new Map(localNotes.map((n) => [n.id, n]));
+      for (const remoteNote of remoteNotes) {
+        const localNote = localById.get(remoteNote.id);
+        if (!localNote || remoteNote.updatedAt > localNote.updatedAt) {
+          await this.local.upsertRaw(remoteNote);
+        }
+      }
+    } catch {
+      // best-effort; local stays authoritative, retried on next pull
+    }
+  }
+
   /** Retries every queued note operation; called on app start / reconnect. */
   async flushPending(): Promise<void> {
     if (!(await this.isOnline())) return;

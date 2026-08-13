@@ -30,6 +30,7 @@ sin `user_id` — es de un solo usuario) y **Postgres** en Supabase (`supabase/s
 | user_id | uuid | dueño (Supabase Auth); ausente en el registro local |
 | name | text | |
 | professor | text? | opcional |
+| room | text? | salón, opcional, se configura manualmente |
 | color | text | hex `#RRGGBB` |
 | day | 1–7 | 1 = lunes … 7 = domingo |
 | start_time / end_time | `HH:mm` | valida `end > start` |

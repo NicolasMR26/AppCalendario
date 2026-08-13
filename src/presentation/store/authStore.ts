@@ -1,7 +1,21 @@
 import { create } from "zustand";
 import type { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "@data/remote/supabaseClient";
-import { flushPendingSync } from "@data/repositories";
+import { flushPendingSync, pullRemoteData } from "@data/repositories";
+import { useNotesStore } from "./notesStore";
+import { useSubjectsStore } from "./subjectsStore";
+
+/**
+ * Runs whenever a session becomes active (cold start with a persisted
+ * session, or an interactive sign-in): downloads anything synced from
+ * another device, pushes whatever was queued locally, then reloads the
+ * subjects/notes stores so the UI reflects what pull just wrote to disk.
+ */
+async function syncAfterSignIn(): Promise<void> {
+  await pullRemoteData();
+  await flushPendingSync();
+  await Promise.all([useSubjectsStore.getState().load(), useNotesStore.getState().loadAll()]);
+}
 
 interface AuthState {
   session: Session | null;
@@ -24,10 +38,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isReady: true });
       return;
     }
-    supabase.auth.getSession().then(({ data }) => set({ session: data.session, isReady: true }));
+    supabase.auth.getSession().then(({ data }) => {
+      set({ session: data.session, isReady: true });
+      if (data.session) void syncAfterSignIn();
+    });
     supabase.auth.onAuthStateChange((_event, session) => {
       set({ session });
-      if (session) void flushPendingSync();
+      if (session) void syncAfterSignIn();
     });
   },
 
