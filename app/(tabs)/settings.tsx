@@ -33,7 +33,27 @@ export default function SettingsScreen() {
   const sendTestEmail = async () => {
     setTestEmailStatus("Enviando…");
     const { error } = await supabase.functions.invoke("send-alert-email", { body: { type: "test" } });
-    setTestEmailStatus(error ? `Error: ${error.message}` : "Correo de prueba enviado ✓");
+    if (!error) {
+      setTestEmailStatus("Correo de prueba enviado ✓");
+      return;
+    }
+    // supabase-js's error.message is a generic "non-2xx status code" string —
+    // the actual reason is in the response body it attaches as `context`.
+    let detail = error.message;
+    const context = (error as { context?: Response }).context;
+    if (context) {
+      try {
+        const body = await context.clone().json();
+        detail = body?.error ?? detail;
+      } catch {
+        try {
+          detail = (await context.clone().text()) || detail;
+        } catch {
+          // keep the generic message
+        }
+      }
+    }
+    setTestEmailStatus(`Error: ${detail}`);
   };
 
   return (
