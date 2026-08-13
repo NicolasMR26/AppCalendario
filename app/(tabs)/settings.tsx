@@ -147,7 +147,7 @@ export default function SettingsScreen() {
         <TextInput
           value={emailDraft}
           onChangeText={setEmailDraft}
-          onEndEditing={() => update({ alertEmail: emailDraft.trim() || null })}
+          onBlur={() => update({ alertEmail: emailDraft.trim() || null })}
           placeholder="tu@correo.com"
           placeholderTextColor={theme.colors.textMuted}
           autoCapitalize="none"
