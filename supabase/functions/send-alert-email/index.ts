@@ -6,6 +6,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { examAlertHtml, sendEmail } from "../_shared/email.ts";
+import { corsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 
 interface TestPayload {
   type: "test";
@@ -19,12 +20,15 @@ interface NotePayload {
 type RequestPayload = TestPayload | NotePayload;
 
 Deno.serve(async (req) => {
+  const preflight = handleCorsPreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return new Response("Missing Authorization header", { status: 401 });
+  if (!authHeader) return new Response("Missing Authorization header", { status: 401, headers: corsHeaders });
 
   // User-scoped client: RLS still applies, so a caller can only ever touch their own rows.
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -33,14 +37,14 @@ Deno.serve(async (req) => {
   });
 
   const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError || !userData.user) return new Response("Invalid session", { status: 401 });
+  if (userError || !userData.user) return new Response("Invalid session", { status: 401, headers: corsHeaders });
   const user = userData.user;
 
   let payload: RequestPayload;
   try {
     payload = await req.json();
   } catch {
-    return new Response("Invalid JSON body", { status: 400 });
+    return new Response("Invalid JSON body", { status: 400, headers: corsHeaders });
   }
 
   const { data: settings } = await supabase
@@ -49,7 +53,7 @@ Deno.serve(async (req) => {
     .eq("user_id", user.id)
     .maybeSingle();
   const recipient = settings?.alert_email || user.email;
-  if (!recipient) return new Response("No alert email configured", { status: 422 });
+  if (!recipient) return new Response("No alert email configured", { status: 422, headers: corsHeaders });
 
   try {
     if (payload.type === "test") {
@@ -67,7 +71,7 @@ Deno.serve(async (req) => {
         .select("id, text, date, subject_id, subjects!inner(name)")
         .eq("id", payload.noteId)
         .single();
-      if (noteError || !note) return new Response("Note not found", { status: 404 });
+      if (noteError || !note) return new Response("Note not found", { status: 404, headers: corsHeaders });
 
       const subjectName = (note as any).subjects.name as string;
       await sendEmail({
@@ -79,12 +83,15 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
-    return new Response("Unknown payload type", { status: 400 });
+    return new Response("Unknown payload type", { status: 400, headers: corsHeaders });
   } catch (err) {
     return json({ ok: false, error: err instanceof Error ? err.message : String(err) }, 500);
   }
 });
 
 function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
