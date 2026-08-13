@@ -9,7 +9,7 @@ export interface SendEmailInput {
 
 export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<void> {
   const apiKey = Deno.env.get("RESEND_API_KEY");
-  const from = Deno.env.get("ALERT_FROM_EMAIL") ?? "DayGridK&N <alerts@daygridkn.app>";
+  const from = formatFromAddress(Deno.env.get("ALERT_FROM_EMAIL") ?? "DayGridK&N <alerts@daygridkn.app>");
   if (!apiKey) throw new Error("RESEND_API_KEY secret is not set");
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -25,6 +25,19 @@ export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<
     const body = await response.text();
     throw new Error(`Resend API error (${response.status}): ${body}`);
   }
+}
+
+/**
+ * RFC 5322 requires a display name containing special characters (our "&"
+ * in "DayGridK&N", for one) to be quoted — `"DayGridK&N" <a@b.com>`, not
+ * `DayGridK&N <a@b.com>`. Some providers reject the unquoted form outright.
+ */
+function formatFromAddress(raw: string): string {
+  const match = raw.match(/^\s*"?([^"<]*?)"?\s*<(.+)>\s*$/);
+  if (!match) return raw;
+  const [, name, email] = match;
+  if (!name.trim()) return `<${email}>`;
+  return `"${name.trim().replace(/"/g, '\\"')}" <${email}>`;
 }
 
 export function examAlertHtml(subjectName: string, noteText: string, date: string | null): string {
